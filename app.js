@@ -1,7 +1,12 @@
 const statusEl = document.querySelector('#status');
+const searchPanelEl = document.querySelector('#searchPanel');
+const searchInputEl = document.querySelector('#playerTagSearch');
+const clearSearchBtnEl = document.querySelector('#clearSearchBtn');
+const searchMetaEl = document.querySelector('#searchMeta');
 const playersGridEl = document.querySelector('#playersGrid');
 const lastUpdateEl = document.querySelector('#lastUpdate');
 const cardTemplate = document.querySelector('#playerCardTemplate');
+let renderedPlayers = [];
 
 const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
@@ -104,9 +109,66 @@ function createEmptyItem(text) {
   return li;
 }
 
+function parseSearchTags(value) {
+  if (!value || typeof value !== 'string') {
+    return [];
+  }
+
+  return value
+    .split(/[,\s;]+/)
+    .map((tag) => normalizeTag(tag))
+    .filter(Boolean);
+}
+
+function matchPlayerTag(playerTag, searchTags) {
+  if (searchTags.length === 0) {
+    return true;
+  }
+
+  const normalizedPlayerTag = normalizeTag(playerTag) ?? '';
+  const barePlayerTag = normalizedPlayerTag.replace(/^#/, '');
+
+  return searchTags.some((tag) => {
+    const bareSearchTag = tag.replace(/^#/, '');
+    return bareSearchTag && barePlayerTag.includes(bareSearchTag);
+  });
+}
+
+function applyTagFilter() {
+  const searchTags = parseSearchTags(searchInputEl?.value ?? '');
+  let visibleCount = 0;
+
+  for (const entry of renderedPlayers) {
+    const visible = matchPlayerTag(entry.tag, searchTags);
+    entry.card.hidden = !visible;
+    if (visible) {
+      visibleCount += 1;
+    }
+  }
+
+  if (searchMetaEl) {
+    if (searchTags.length === 0) {
+      searchMetaEl.textContent = `${visibleCount} joueur(s) disponible(s).`;
+    } else {
+      searchMetaEl.textContent = `${visibleCount} resultat(s) pour ${searchTags.join(', ')}.`;
+    }
+  }
+
+  if (visibleCount === 0) {
+    playersGridEl.hidden = true;
+    statusEl.hidden = false;
+    statusEl.textContent = 'Aucun joueur ne correspond a ce tag.';
+    return;
+  }
+
+  playersGridEl.hidden = false;
+  statusEl.hidden = true;
+}
+
 function renderPlayerCard(player, assets) {
   const card = cardTemplate.content.firstElementChild.cloneNode(true);
   const matches = Array.isArray(player.matches) ? player.matches : [];
+  card.dataset.playerTag = normalizeTag(player.tag) ?? '';
 
   const wins = matches.filter((match) => match.result === 'victory').length;
   const defeats = matches.filter((match) => match.result === 'defeat').length;
@@ -218,13 +280,38 @@ async function init() {
     });
 
     const fragment = document.createDocumentFragment();
+    renderedPlayers = [];
     for (const player of players) {
-      fragment.appendChild(renderPlayerCard(player, database.assets ?? {}));
+      const card = renderPlayerCard(player, database.assets ?? {});
+      renderedPlayers.push({
+        card,
+        tag: player.tag ?? '',
+      });
+      fragment.appendChild(card);
     }
 
     playersGridEl.appendChild(fragment);
-    playersGridEl.hidden = false;
-    statusEl.hidden = true;
+
+    if (searchPanelEl) {
+      searchPanelEl.hidden = false;
+    }
+
+    if (searchInputEl) {
+      searchInputEl.addEventListener('input', applyTagFilter);
+    }
+
+    if (clearSearchBtnEl) {
+      clearSearchBtnEl.addEventListener('click', () => {
+        if (!searchInputEl) {
+          return;
+        }
+        searchInputEl.value = '';
+        applyTagFilter();
+        searchInputEl.focus();
+      });
+    }
+
+    applyTagFilter();
   } catch (error) {
     statusEl.textContent = error.message;
     statusEl.hidden = false;

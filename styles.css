@@ -73,6 +73,57 @@ h1 {
   color: var(--muted);
 }
 
+.search-panel {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.search-panel label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-weight: 700;
+  font-size: 0.93rem;
+  color: var(--accent-soft);
+}
+
+.search-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.55rem;
+}
+
+.search-row input,
+.search-row button {
+  border-radius: 10px;
+  border: 1px solid rgba(150, 180, 220, 0.3);
+  background: rgba(8, 19, 34, 0.72);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.94rem;
+  min-height: 42px;
+}
+
+.search-row input {
+  padding: 0 0.75rem;
+}
+
+.search-row button {
+  padding: 0 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.search-meta {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.87rem;
+}
+
 .players-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -188,6 +239,10 @@ h1 {
   }
 
   .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-row {
     grid-template-columns: 1fr;
   }
 }

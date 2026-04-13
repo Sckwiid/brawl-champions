@@ -26,6 +26,20 @@
 
     <main class="container">
       <section id="status" class="status">Chargement des statistiques...</section>
+      <section id="searchPanel" class="search-panel" hidden>
+        <label for="playerTagSearch">Rechercher un joueur par tag</label>
+        <div class="search-row">
+          <input
+            id="playerTagSearch"
+            type="search"
+            inputmode="text"
+            autocomplete="off"
+            placeholder="Ex: #ABC123 ou #ABC123,#XYZ789"
+          />
+          <button id="clearSearchBtn" type="button">Effacer</button>
+        </div>
+        <p id="searchMeta" class="search-meta"></p>
+      </section>
       <section id="playersGrid" class="players-grid" hidden></section>
     </main>
 
