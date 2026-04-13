@@ -1,5 +1,4 @@
 const statusEl = document.querySelector('#status');
-const searchPanelEl = document.querySelector('#searchPanel');
 const searchInputEl = document.querySelector('#playerTagSearch');
 const clearSearchBtnEl = document.querySelector('#clearSearchBtn');
 const searchMetaEl = document.querySelector('#searchMeta');
@@ -7,6 +6,7 @@ const playersGridEl = document.querySelector('#playersGrid');
 const lastUpdateEl = document.querySelector('#lastUpdate');
 const cardTemplate = document.querySelector('#playerCardTemplate');
 let renderedPlayers = [];
+let searchEventsBound = false;
 
 const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
@@ -165,6 +165,39 @@ function applyTagFilter() {
   statusEl.hidden = true;
 }
 
+function bindSearchEvents() {
+  if (searchEventsBound) {
+    return;
+  }
+
+  if (searchInputEl) {
+    searchInputEl.addEventListener('input', applyTagFilter);
+  }
+
+  if (clearSearchBtnEl) {
+    clearSearchBtnEl.addEventListener('click', () => {
+      if (!searchInputEl) {
+        return;
+      }
+      searchInputEl.value = '';
+      applyTagFilter();
+      searchInputEl.focus();
+    });
+  }
+
+  searchEventsBound = true;
+}
+
+function setSearchEnabled(enabled) {
+  if (searchInputEl) {
+    searchInputEl.disabled = !enabled;
+  }
+
+  if (clearSearchBtnEl) {
+    clearSearchBtnEl.disabled = !enabled;
+  }
+}
+
 function renderPlayerCard(player, assets) {
   const card = cardTemplate.content.firstElementChild.cloneNode(true);
   const matches = Array.isArray(player.matches) ? player.matches : [];
@@ -266,12 +299,19 @@ async function init() {
     const players = Object.values(database?.players ?? {});
 
     lastUpdateEl.textContent = `Derniere mise a jour: ${formatDate(database?.updatedAt)}`;
+    bindSearchEvents();
 
     if (players.length === 0) {
+      setSearchEnabled(false);
+      if (searchMetaEl) {
+        searchMetaEl.textContent = '0 joueur(s) disponible(s).';
+      }
       statusEl.textContent =
         'Aucun joueur actif dans data/players.json. Ajoute des tags puis laisse le workflow remplir l historique.';
       return;
     }
+
+    setSearchEnabled(true);
 
     players.sort((a, b) => {
       const left = (a.alias || a.tag || '').toLowerCase();
@@ -291,28 +331,16 @@ async function init() {
     }
 
     playersGridEl.appendChild(fragment);
-
-    if (searchPanelEl) {
-      searchPanelEl.hidden = false;
-    }
-
-    if (searchInputEl) {
-      searchInputEl.addEventListener('input', applyTagFilter);
-    }
-
-    if (clearSearchBtnEl) {
-      clearSearchBtnEl.addEventListener('click', () => {
-        if (!searchInputEl) {
-          return;
-        }
-        searchInputEl.value = '';
-        applyTagFilter();
-        searchInputEl.focus();
-      });
+    if (searchMetaEl) {
+      searchMetaEl.textContent = `${players.length} joueur(s) disponible(s).`;
     }
 
     applyTagFilter();
   } catch (error) {
+    setSearchEnabled(false);
+    if (searchMetaEl) {
+      searchMetaEl.textContent = 'Recherche indisponible (erreur de chargement).';
+    }
     statusEl.textContent = error.message;
     statusEl.hidden = false;
   }
