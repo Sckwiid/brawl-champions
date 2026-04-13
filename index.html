@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brawl Stars Esport Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Sora:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">GitHub Pages • 100% statique</p>
+        <h1>Brawl Stars Esport Tracker</h1>
+        <p class="subtitle">
+          Dashboard généré côté client à partir du fichier <code>database.json</code>.
+        </p>
+        <p id="lastUpdate" class="last-update">Dernière mise à jour: inconnue</p>
+      </div>
+    </header>
+
+    <main class="container">
+      <section id="status" class="status">Chargement des statistiques...</section>
+      <section id="playersGrid" class="players-grid" hidden></section>
+    </main>
+
+    <template id="playerCardTemplate">
+      <article class="player-card">
+        <div class="card-header">
+          <h2 class="player-name"></h2>
+          <p class="player-tag"></p>
+          <p class="player-team"></p>
+          <p class="player-cashprize"></p>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi">
+            <span class="kpi-label">Matchs</span>
+            <span class="kpi-value total-matches"></span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Winrate global</span>
+            <span class="kpi-value winrate"></span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Victoires</span>
+            <span class="kpi-value wins"></span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Défaites</span>
+            <span class="kpi-value defeats"></span>
+          </div>
+        </div>
+
+        <div class="insights-grid">
+          <section>
+            <h3>Top Brawlers</h3>
+            <ul class="top-brawlers"></ul>
+          </section>
+
+          <section>
+            <h3>Meilleurs alliés</h3>
+            <ul class="top-allies"></ul>
+          </section>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

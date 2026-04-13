@@ -1,0 +1,193 @@
+:root {
+  --bg: #071321;
+  --bg-soft: #10233d;
+  --surface: rgba(10, 22, 40, 0.8);
+  --surface-border: rgba(120, 180, 255, 0.25);
+  --accent: #ffba08;
+  --accent-soft: #ffdf80;
+  --text: #e7f0ff;
+  --muted: #9bb3d2;
+  --good: #52d273;
+  --danger: #ff6b6b;
+  --shadow: 0 16px 48px rgba(4, 10, 21, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Manrope', sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 186, 8, 0.18), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(70, 140, 255, 0.22), transparent 40%),
+    var(--bg);
+}
+
+.hero {
+  padding: 3.25rem 1.25rem 2rem;
+}
+
+.hero-content {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+h1 {
+  margin: 0.35rem 0;
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.1;
+}
+
+.subtitle,
+.last-update {
+  margin: 0.35rem 0;
+  color: var(--muted);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.25rem 2.5rem;
+}
+
+.status {
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--muted);
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.player-card {
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.card-header {
+  margin-bottom: 0.9rem;
+}
+
+.player-name {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.3rem;
+}
+
+.player-tag,
+.player-team,
+.player-cashprize {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.8rem;
+}
+
+.kpi {
+  border: 1px solid rgba(150, 180, 220, 0.2);
+  border-radius: 10px;
+  padding: 0.6rem;
+  background: rgba(8, 19, 34, 0.65);
+}
+
+.kpi-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.kpi-value {
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.insights-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.insights-grid section h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.insights-grid ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.insights-grid li {
+  border: 1px solid rgba(150, 180, 220, 0.18);
+  border-radius: 10px;
+  background: rgba(8, 19, 34, 0.52);
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.brawler-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brawler-item img {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid rgba(150, 180, 220, 0.25);
+}
+
+.winrate-positive {
+  color: var(--good);
+}
+
+.winrate-negative {
+  color: var(--danger);
+}
+
+@media (max-width: 680px) {
+  .hero {
+    padding-top: 2.3rem;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
