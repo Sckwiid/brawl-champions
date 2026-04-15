@@ -7,6 +7,7 @@ const lastUpdateEl = document.querySelector('#lastUpdate');
 const cardTemplate = document.querySelector('#playerCardTemplate');
 let renderedPlayers = [];
 let searchEventsBound = false;
+let totalPlayersInDatabase = 0;
 
 const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
@@ -136,6 +137,24 @@ function matchPlayerTag(playerTag, searchTags) {
 
 function applyTagFilter() {
   const searchTags = parseSearchTags(searchInputEl?.value ?? '');
+
+  if (totalPlayersInDatabase === 0) {
+    playersGridEl.hidden = true;
+    statusEl.hidden = false;
+    statusEl.textContent =
+      'Aucun joueur en base pour le moment. Ajoute des tags dans data/players.json puis lance le workflow.';
+
+    if (searchMetaEl) {
+      if (searchTags.length === 0) {
+        searchMetaEl.textContent = '0 joueur(s) indexe(s) dans la base.';
+      } else {
+        searchMetaEl.textContent = `0 resultat(s) pour ${searchTags.join(', ')} (base vide).`;
+      }
+    }
+
+    return;
+  }
+
   let visibleCount = 0;
 
   for (const entry of renderedPlayers) {
@@ -186,16 +205,6 @@ function bindSearchEvents() {
   }
 
   searchEventsBound = true;
-}
-
-function setSearchEnabled(enabled) {
-  if (searchInputEl) {
-    searchInputEl.disabled = !enabled;
-  }
-
-  if (clearSearchBtnEl) {
-    clearSearchBtnEl.disabled = !enabled;
-  }
 }
 
 function renderPlayerCard(player, assets) {
@@ -297,21 +306,19 @@ async function init() {
   try {
     const database = await loadDatabase();
     const players = Object.values(database?.players ?? {});
+    totalPlayersInDatabase = players.length;
 
     lastUpdateEl.textContent = `Derniere mise a jour: ${formatDate(database?.updatedAt)}`;
     bindSearchEvents();
 
     if (players.length === 0) {
-      setSearchEnabled(false);
       if (searchMetaEl) {
-        searchMetaEl.textContent = '0 joueur(s) disponible(s).';
+        searchMetaEl.textContent = '0 joueur(s) indexe(s) dans la base.';
       }
       statusEl.textContent =
-        'Aucun joueur actif dans data/players.json. Ajoute des tags puis laisse le workflow remplir l historique.';
+        'Aucun joueur en base pour le moment. Ajoute des tags dans data/players.json puis lance le workflow.';
       return;
     }
-
-    setSearchEnabled(true);
 
     players.sort((a, b) => {
       const left = (a.alias || a.tag || '').toLowerCase();
@@ -337,7 +344,7 @@ async function init() {
 
     applyTagFilter();
   } catch (error) {
-    setSearchEnabled(false);
+    totalPlayersInDatabase = 0;
     if (searchMetaEl) {
       searchMetaEl.textContent = 'Recherche indisponible (erreur de chargement).';
     }

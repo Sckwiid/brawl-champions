@@ -7,39 +7,52 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Sora:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=Unbounded:wght@500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div class="bg-orb orb-left" aria-hidden="true"></div>
+    <div class="bg-orb orb-right" aria-hidden="true"></div>
+
     <header class="hero">
-      <div class="hero-content">
-        <p class="eyebrow">GitHub Pages • 100% statique</p>
-        <h1>Brawl Stars Esport Tracker</h1>
-        <p class="subtitle">
-          Dashboard généré côté client à partir du fichier <code>database.json</code>.
-        </p>
-        <p id="lastUpdate" class="last-update">Dernière mise à jour: inconnue</p>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">GitHub Pages • 100% statique</p>
+          <h1>Brawl Stars Esport Tracker</h1>
+          <p class="subtitle">
+            Dashboard esport ultra-rapide, alimente par <code>database.json</code> et calcule cote navigateur.
+          </p>
+          <div class="hero-badges">
+            <span>Historique infini</span>
+            <span>Sans backend expose</span>
+            <span>CI horaire</span>
+          </div>
+          <p id="lastUpdate" class="last-update">Derniere mise a jour: inconnue</p>
+        </div>
+
+        <section id="searchPanel" class="search-panel">
+          <p class="search-title">Recherche par tag</p>
+          <p class="search-hint">Entre un tag complet ou partiel. Tu peux aussi coller plusieurs tags.</p>
+          <div class="search-row">
+            <input
+              id="playerTagSearch"
+              type="search"
+              inputmode="text"
+              autocomplete="off"
+              placeholder="Ex: #ABC123 ou #ABC123,#XYZ789"
+              aria-label="Rechercher un joueur par tag"
+            />
+            <button id="clearSearchBtn" type="button">Effacer</button>
+          </div>
+          <p id="searchMeta" class="search-meta"></p>
+        </section>
       </div>
     </header>
 
     <main class="container">
       <section id="status" class="status">Chargement des statistiques...</section>
-      <section id="searchPanel" class="search-panel">
-        <label for="playerTagSearch">Rechercher un joueur par tag</label>
-        <div class="search-row">
-          <input
-            id="playerTagSearch"
-            type="search"
-            inputmode="text"
-            autocomplete="off"
-            placeholder="Ex: #ABC123 ou #ABC123,#XYZ789"
-          />
-          <button id="clearSearchBtn" type="button">Effacer</button>
-        </div>
-        <p id="searchMeta" class="search-meta"></p>
-      </section>
       <section id="playersGrid" class="players-grid" hidden></section>
     </main>
 
@@ -66,7 +79,7 @@
             <span class="kpi-value wins"></span>
           </div>
           <div class="kpi">
-            <span class="kpi-label">Défaites</span>
+            <span class="kpi-label">Defaites</span>
             <span class="kpi-value defeats"></span>
           </div>
         </div>
@@ -78,7 +91,7 @@
           </section>
 
           <section>
-            <h3>Meilleurs alliés</h3>
+            <h3>Meilleurs allies</h3>
             <ul class="top-allies"></ul>
           </section>
         </div>
