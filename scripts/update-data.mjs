@@ -24,6 +24,18 @@ const LIQUIPEDIA_USER_AGENT =
   process.env.LIQUIPEDIA_USER_AGENT ?? 'BrawlStarsTrackerBot/1.0 (GitHub Actions)';
 
 const REQUEST_TIMEOUT_MS = 20000;
+const LIQUIPEDIA_MIN_INTERVAL_MS = Number.isFinite(Number(process.env.LIQUIPEDIA_MIN_INTERVAL_MS))
+  ? Math.max(0, Number(process.env.LIQUIPEDIA_MIN_INTERVAL_MS))
+  : 350;
+const LIQUIPEDIA_RETRY_COUNT = Number.isFinite(Number(process.env.LIQUIPEDIA_RETRY_COUNT))
+  ? Math.max(0, Number(process.env.LIQUIPEDIA_RETRY_COUNT))
+  : 2;
+const LIQUIPEDIA_RETRY_BASE_MS = Number.isFinite(Number(process.env.LIQUIPEDIA_RETRY_BASE_MS))
+  ? Math.max(100, Number(process.env.LIQUIPEDIA_RETRY_BASE_MS))
+  : 1200;
+
+let lastLiquipediaRequestAt = 0;
+const liquipediaTeamNameCache = new Map();
 
 function normalizeTag(tag) {
   if (!tag || typeof tag !== 'string') {
