@@ -10,10 +10,16 @@ const PLAYERS_CONFIG_PATH = path.join(ROOT_DIR, 'data', 'players.json');
 const DATABASE_PATH = path.join(ROOT_DIR, 'database.json');
 
 const SUPERCELL_API_BASE = process.env.SUPERCELL_API_BASE ?? 'https://api.brawlstars.com/v1';
-const LIQUIPEDIA_API_BASE = process.env.LIQUIPEDIA_API_BASE ?? 'https://liquipedia.net/brawlstars/api.php';
+const LIQUIPEDIA_MEDIAWIKI_API_BASE =
+  process.env.LIQUIPEDIA_MEDIAWIKI_API_BASE ??
+  process.env.LIQUIPEDIA_API_BASE ??
+  'https://liquipedia.net/brawlstars/api.php';
+const LIQUIPEDIA_DB_API_BASE = process.env.LIQUIPEDIA_DB_API_BASE ?? 'https://api.liquipedia.net/api/v3';
+const LIQUIPEDIA_DB_WIKI = process.env.LIQUIPEDIA_DB_WIKI ?? 'brawlstars';
 const BRAWLAPI_BASE = process.env.BRAWLAPI_BASE ?? 'https://api.brawlapi.com/v1';
 
 const SUPERCELL_TOKEN = process.env.BRAWLSTARS_API_TOKEN;
+const LIQUIPEDIA_API_KEY = process.env.LIQUIPEDIA_API_KEY;
 const LIQUIPEDIA_USER_AGENT =
   process.env.LIQUIPEDIA_USER_AGENT ?? 'BrawlStarsTrackerBot/1.0 (GitHub Actions)';
 
@@ -66,13 +72,138 @@ function parseCashPrize(value) {
     return null;
   }
 
-  const numberMatch = value.replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+  const normalized = String(value).replace(/[,\s']/g, '');
+  const numberMatch = normalized.match(/-?\d+(?:\.\d+)?/);
   if (!numberMatch) {
     return null;
   }
 
   const parsed = Number(numberMatch[0]);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sanitizeLiquipediaConditionValue(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  return String(value).replace(/[\[\]]/g, '').trim();
+}
+
+function resolveStringFromUnknown(input, preferredObjectKeys = []) {
+  if (input === null || input === undefined) {
+    return null;
+  }
+
+  if (typeof input === 'string' || typeof input === 'number') {
+    const cleaned = cleanWikiText(String(input));
+    return cleaned || null;
+  }
+
+  if (Array.isArray(input)) {
+    for (const item of input) {
+      const resolved = resolveStringFromUnknown(item, preferredObjectKeys);
+      if (resolved) {
+        return resolved;
+      }
+    }
+    return null;
+  }
+
+  if (typeof input === 'object') {
+    for (const key of preferredObjectKeys) {
+      if (Object.hasOwn(input, key)) {
+        const resolved = resolveStringFromUnknown(input[key], preferredObjectKeys);
+        if (resolved) {
+          return resolved;
+        }
+      }
+    }
+
+    for (const nested of Object.values(input)) {
+      const resolved = resolveStringFromUnknown(nested, preferredObjectKeys);
+      if (resolved) {
+        return resolved;
+      }
+    }
+  }
+
+  return null;
+}
+
+function pickFirstField(record, fields) {
+  if (!record || typeof record !== 'object') {
+    return null;
+  }
+
+  for (const field of fields) {
+    if (Object.hasOwn(record, field) && record[field] !== null && record[field] !== undefined) {
+      return record[field];
+    }
+  }
+
+  return null;
+}
+
+function extractTeamIdentifierFromPlayerRecord(playerRecord) {
+  const raw = pickFirstField(playerRecord, [
+    'teamtemplateid',
+    'team_id',
+    'teamid',
+    'currentteamid',
+    'teamtemplate',
+    'team',
+    'currentteam',
+    'current_team',
+  ]);
+
+  const resolved = resolveStringFromUnknown(raw, ['id', 'teamid', 'team_id', 'name', 'teamname']);
+  return resolved || null;
+}
+
+function extractTeamNameFromPlayerRecord(playerRecord) {
+  const raw = pickFirstField(playerRecord, [
+    'currentteam',
+    'current_team',
+    'team',
+    'teamname',
+    'team_name',
+    'organization',
+    'org',
+  ]);
+
+  return resolveStringFromUnknown(raw, ['name', 'teamname', 'team_name', 'displayname', 'id']);
+}
+
+function extractTeamNameFromTeamRecord(teamRecord) {
+  const raw = pickFirstField(teamRecord, ['name', 'teamname', 'team_name', 'displayname', 'id', 'pagename']);
+  return resolveStringFromUnknown(raw, ['name', 'teamname', 'team_name', 'displayname', 'id']);
+}
+
+function extractCashPrizeFromPlayerRecord(playerRecord) {
+  const raw = pickFirstField(playerRecord, [
+    'earnings',
+    'prizemoney',
+    'prize_money',
+    'totalprizemoney',
+    'cashprize',
+    'winnings',
+  ]);
+
+  const rawCashPrize = resolveStringFromUnknown(raw, ['amount', 'value', 'usd', 'prizemoney']);
+  return {
+    cashPrizeUsd: parseCashPrize(rawCashPrize),
+    rawCashPrize: rawCashPrize || null,
+  };
+}
+
+function buildLiquipediaArticleUrl(pageName) {
+  const normalizedPage = sanitizeLiquipediaConditionValue(pageName)?.replace(/\s+/g, '_');
+  if (!normalizedPage) {
+    return 'https://liquipedia.net/brawlstars/Main_Page';
+  }
+
+  return `https://liquipedia.net/brawlstars/${normalizedPage}`;
 }
 
 function deepClone(value) {
@@ -289,12 +420,107 @@ async function fetchBattleLog(playerTag) {
   return Array.isArray(json?.items) ? json.items : [];
 }
 
-async function fetchLiquipediaData(pageName) {
+async function fetchLiquipediaDbRows(endpoint, params, context) {
+  const url = new URL(`${LIQUIPEDIA_DB_API_BASE}/${endpoint}`);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      url.searchParams.set(key, String(value));
+    }
+  });
+
+  const json = await fetchJson(
+    url.toString(),
+    {
+      headers: {
+        Authorization: `Apikey ${LIQUIPEDIA_API_KEY}`,
+        'User-Agent': LIQUIPEDIA_USER_AGENT,
+        'Accept-Encoding': 'gzip',
+      },
+    },
+    context,
+  );
+
+  if (Array.isArray(json?.error) && json.error.length > 0) {
+    throw new Error(`${context} returned API errors: ${json.error.join('; ')}`);
+  }
+
+  return Array.isArray(json?.result) ? json.result : [];
+}
+
+async function fetchLiquipediaTeamNameFromDb(teamIdentifier) {
+  const safeTeamIdentifier = sanitizeLiquipediaConditionValue(teamIdentifier);
+  if (!safeTeamIdentifier) {
+    return null;
+  }
+
+  const conditions = `[[id::${safeTeamIdentifier}]] OR [[name::${safeTeamIdentifier}]] OR [[pagename::${safeTeamIdentifier}]]`;
+  const teams = await fetchLiquipediaDbRows(
+    'team',
+    {
+      wiki: LIQUIPEDIA_DB_WIKI,
+      limit: 1,
+      conditions,
+    },
+    `Liquipedia DB team lookup (${safeTeamIdentifier})`,
+  );
+
+  if (teams.length === 0) {
+    return null;
+  }
+
+  return extractTeamNameFromTeamRecord(teams[0]);
+}
+
+async function fetchLiquipediaDataFromDb(pageName) {
+  const safePageName = sanitizeLiquipediaConditionValue(pageName);
+  if (!safePageName) {
+    return null;
+  }
+
+  const pageAsName = safePageName.replace(/_/g, ' ');
+  const conditions = `[[pagename::${safePageName}]] OR [[id::${safePageName}]] OR [[name::${pageAsName}]]`;
+  const players = await fetchLiquipediaDbRows(
+    'player',
+    {
+      wiki: LIQUIPEDIA_DB_WIKI,
+      limit: 1,
+      conditions,
+    },
+    `Liquipedia DB player lookup (${safePageName})`,
+  );
+
+  if (players.length === 0) {
+    return null;
+  }
+
+  const playerRecord = players[0];
+  const cashPrize = extractCashPrizeFromPlayerRecord(playerRecord);
+
+  let team = extractTeamNameFromPlayerRecord(playerRecord);
+  if (!team) {
+    const teamIdentifier = extractTeamIdentifierFromPlayerRecord(playerRecord);
+    if (teamIdentifier) {
+      team = await fetchLiquipediaTeamNameFromDb(teamIdentifier);
+    }
+  }
+
+  return {
+    page: pageName,
+    articleUrl: buildLiquipediaArticleUrl(pageName),
+    source: 'liquipedia-db-v3',
+    cashPrizeUsd: cashPrize.cashPrizeUsd,
+    team: team || null,
+    rawCashPrize: cashPrize.rawCashPrize,
+  };
+}
+
+async function fetchLiquipediaDataFromMediaWiki(pageName) {
   if (!pageName) {
     return null;
   }
 
-  const url = `${LIQUIPEDIA_API_BASE}?action=parse&page=${encodeURIComponent(pageName)}&prop=wikitext&format=json`;
+  const url = `${LIQUIPEDIA_MEDIAWIKI_API_BASE}?action=parse&page=${encodeURIComponent(pageName)}&prop=wikitext&format=json`;
 
   const json = await fetchJson(
     url,
@@ -303,7 +529,7 @@ async function fetchLiquipediaData(pageName) {
         'User-Agent': LIQUIPEDIA_USER_AGENT,
       },
     },
-    `Liquipedia page ${pageName}`,
+    `Liquipedia MediaWiki page ${pageName}`,
   );
 
   const wikiText = json?.parse?.wikitext?.['*'];
@@ -319,10 +545,32 @@ async function fetchLiquipediaData(pageName) {
 
   return {
     page: pageName,
+    articleUrl: buildLiquipediaArticleUrl(pageName),
+    source: 'liquipedia-mediawiki',
     cashPrizeUsd: parseCashPrize(earningsRaw),
     team: teamRaw || null,
     rawCashPrize: earningsRaw || null,
   };
+}
+
+async function fetchLiquipediaData(pageName) {
+  if (!pageName) {
+    return null;
+  }
+
+  if (LIQUIPEDIA_API_KEY) {
+    try {
+      const liquipediaDbData = await fetchLiquipediaDataFromDb(pageName);
+      if (liquipediaDbData) {
+        return liquipediaDbData;
+      }
+      console.warn(`[warn] Liquipedia DB found no player for ${pageName}, fallback to MediaWiki parsing`);
+    } catch (error) {
+      console.warn(`[warn] ${error.message}`);
+    }
+  }
+
+  return fetchLiquipediaDataFromMediaWiki(pageName);
 }
 
 async function fetchBrawlApiAssets() {
@@ -385,6 +633,10 @@ async function main() {
 
   if (activePlayers.length > 0 && !SUPERCELL_TOKEN) {
     throw new Error('BRAWLSTARS_API_TOKEN is required when active players are configured');
+  }
+
+  if (!LIQUIPEDIA_API_KEY) {
+    console.warn('[warn] LIQUIPEDIA_API_KEY is missing, fallback to MediaWiki page parsing for Liquipedia fields');
   }
 
   let totalNewMatches = 0;
@@ -451,6 +703,8 @@ async function main() {
           const previousLiquipedia = currentRecord.liquipedia
             ? {
                 page: currentRecord.liquipedia.page ?? null,
+                articleUrl: currentRecord.liquipedia.articleUrl ?? null,
+                source: currentRecord.liquipedia.source ?? null,
                 cashPrizeUsd: currentRecord.liquipedia.cashPrizeUsd ?? null,
                 team: currentRecord.liquipedia.team ?? null,
                 rawCashPrize: currentRecord.liquipedia.rawCashPrize ?? null,

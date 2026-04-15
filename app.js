@@ -38,6 +38,19 @@ function formatDate(value) {
   });
 }
 
+function buildLiquipediaArticleUrl(pageName) {
+  if (!pageName || typeof pageName !== 'string') {
+    return 'https://liquipedia.net/brawlstars/Main_Page';
+  }
+
+  const page = pageName.trim().replace(/\s+/g, '_');
+  if (!page) {
+    return 'https://liquipedia.net/brawlstars/Main_Page';
+  }
+
+  return `https://liquipedia.net/brawlstars/${page}`;
+}
+
 function computeTopBrawlers(matches) {
   const byBrawler = new Map();
 
@@ -142,11 +155,11 @@ function applyTagFilter() {
     playersGridEl.hidden = true;
     statusEl.hidden = false;
     statusEl.textContent =
-      'Aucun joueur en base pour le moment. Ajoute des tags dans data/players.json puis lance le workflow.';
+      'Aucun joueur professionnel en base pour le moment. Ajoute des tags pros dans data/players.json puis lance le workflow.';
 
     if (searchMetaEl) {
       if (searchTags.length === 0) {
-        searchMetaEl.textContent = '0 joueur(s) indexe(s) dans la base.';
+        searchMetaEl.textContent = '0 joueur(s) pro indexe(s) dans la base.';
       } else {
         searchMetaEl.textContent = `0 resultat(s) pour ${searchTags.join(', ')} (base vide).`;
       }
@@ -167,7 +180,7 @@ function applyTagFilter() {
 
   if (searchMetaEl) {
     if (searchTags.length === 0) {
-      searchMetaEl.textContent = `${visibleCount} joueur(s) disponible(s).`;
+      searchMetaEl.textContent = `${visibleCount} joueur(s) pro disponible(s).`;
     } else {
       searchMetaEl.textContent = `${visibleCount} resultat(s) pour ${searchTags.join(', ')}.`;
     }
@@ -176,7 +189,7 @@ function applyTagFilter() {
   if (visibleCount === 0) {
     playersGridEl.hidden = true;
     statusEl.hidden = false;
-    statusEl.textContent = 'Aucun joueur ne correspond a ce tag.';
+    statusEl.textContent = 'Aucun joueur pro suivi ne correspond a ce tag.';
     return;
   }
 
@@ -220,11 +233,28 @@ function renderPlayerCard(player, assets) {
   card.querySelector('.player-name').textContent = player.alias || player.tag;
   card.querySelector('.player-tag').textContent = player.tag;
   card.querySelector('.player-team').textContent =
-    `Equipe actuelle: ${player?.liquipedia?.team ?? 'inconnue'}`;
+    `Equipe pro actuelle: ${player?.liquipedia?.team ?? 'inconnue'}`;
 
   const cashPrize = player?.liquipedia?.cashPrizeUsd;
   card.querySelector('.player-cashprize').textContent =
-    `Cashprize estimé: ${typeof cashPrize === 'number' ? currencyFormatter.format(cashPrize) : 'inconnu'}`;
+    `Cashprize estime (Liquipedia): ${typeof cashPrize === 'number' ? currencyFormatter.format(cashPrize) : 'inconnu'}`;
+
+  const sourceEl = card.querySelector('.player-source');
+  if (sourceEl) {
+    const sourceUrl =
+      player?.liquipedia?.articleUrl ??
+      buildLiquipediaArticleUrl(player?.liquipedia?.page ?? player?.liquipediaPage ?? null);
+
+    sourceEl.textContent = 'Donnees Liquipedia: ';
+
+    const sourceLink = document.createElement('a');
+    sourceLink.href = sourceUrl;
+    sourceLink.target = '_blank';
+    sourceLink.rel = 'noopener noreferrer';
+    sourceLink.textContent = 'source';
+
+    sourceEl.append(sourceLink, document.createTextNode(' (CC BY-SA 3.0).'));
+  }
 
   card.querySelector('.total-matches').textContent = String(total);
 
@@ -313,10 +343,10 @@ async function init() {
 
     if (players.length === 0) {
       if (searchMetaEl) {
-        searchMetaEl.textContent = '0 joueur(s) indexe(s) dans la base.';
+        searchMetaEl.textContent = '0 joueur(s) pro indexe(s) dans la base.';
       }
       statusEl.textContent =
-        'Aucun joueur en base pour le moment. Ajoute des tags dans data/players.json puis lance le workflow.';
+        'Aucun joueur professionnel en base pour le moment. Ajoute des tags pros dans data/players.json puis lance le workflow.';
       return;
     }
 
@@ -339,7 +369,7 @@ async function init() {
 
     playersGridEl.appendChild(fragment);
     if (searchMetaEl) {
-      searchMetaEl.textContent = `${players.length} joueur(s) disponible(s).`;
+      searchMetaEl.textContent = `${players.length} joueur(s) pro disponible(s).`;
     }
 
     applyTagFilter();
